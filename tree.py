@@ -5,7 +5,7 @@
 #
 # Version   Date    Info
 # 1.0       2023    Initial Version
-#
+# 1.1       2024    Bug fix
 #--------------------------------------------------------
 
 class TreeNode:
@@ -15,39 +15,41 @@ class TreeNode:
         self.right = None
 
 class BinaryTree:
-    def __init__(self, root_value):
-        self.root = TreeNode(root_value)
+    def __init__(self, root_value=None):
+        self.root = TreeNode(root_value) if root_value is not None else None
     
     def insert(self, value):
-        """Insert a value into the binary tree"""
-        if not self.root:
+        """Insert a value into the binary tree using level-order insertion"""
+        if self.root is None:
             self.root = TreeNode(value)
             return
         
-        queue = [self.root]
+        from collections import deque
+        queue = deque([self.root])
+        
         while queue:
-            current = queue.pop(0)
+            current = queue.popleft()
             
-            if not current.left:
+            if current.left is None:
                 current.left = TreeNode(value)
                 return
-            else:
-                queue.append(current.left)
-                
-            if not current.right:
+            queue.append(current.left)
+            
+            if current.right is None:
                 current.right = TreeNode(value)
                 return
-            else:
-                queue.append(current.right)
+            queue.append(current.right)
     
     def search(self, value):
-        """Search for a value in the tree (BFS)"""
-        if not self.root:
+        """Search for a value in the tree using BFS"""
+        if self.root is None:
             return False
             
-        queue = [self.root]
+        from collections import deque
+        queue = deque([self.root])
+        
         while queue:
-            current = queue.pop(0)
+            current = queue.popleft()
             if current.value == value:
                 return True
             if current.left:
@@ -56,73 +58,84 @@ class BinaryTree:
                 queue.append(current.right)
         return False
     
-    def inorder_traversal(self, node):
-        """Left -> Root -> Right"""
-        if node:
-            self.inorder_traversal(node.left)
-            print(node.value, end=' ')
-            self.inorder_traversal(node.right)
+    def traverse(self, mode='inorder'):
+        """Perform tree traversal with different modes"""
+        def _inorder(node):
+            if node:
+                yield from _inorder(node.left)
+                yield node.value
+                yield from _inorder(node.right)
+        
+        def _preorder(node):
+            if node:
+                yield node.value
+                yield from _preorder(node.left)
+                yield from _preorder(node.right)
+        
+        def _postorder(node):
+            if node:
+                yield from _postorder(node.left)
+                yield from _postorder(node.right)
+                yield node.value
+        
+        def _levelorder():
+            if self.root is None:
+                return
+            from collections import deque
+            queue = deque([self.root])
+            while queue:
+                current = queue.popleft()
+                yield current.value
+                if current.left:
+                    queue.append(current.left)
+                if current.right:
+                    queue.append(current.right)
+        
+        traversals = {
+            'inorder': _inorder,
+            'preorder': _preorder,
+            'postorder': _postorder,
+            'levelorder': _levelorder
+        }
+        
+        if mode not in traversals:
+            raise ValueError(f"Invalid traversal mode. Choose from {list(traversals.keys())}")
+        
+        return list(traversals[mode](self.root)) if mode != 'levelorder' else list(_levelorder())
     
-    def preorder_traversal(self, node):
-        """Root -> Left -> Right"""
-        if node:
-            print(node.value, end=' ')
-            self.preorder_traversal(node.left)
-            self.preorder_traversal(node.right)
-    
-    def postorder_traversal(self, node):
-        """Left -> Right -> Root"""
-        if node:
-            self.postorder_traversal(node.left)
-            self.postorder_traversal(node.right)
-            print(node.value, end=' ')
-    
-    def level_order_traversal(self):
-        """Breadth-First Search (level order)"""
-        if not self.root:
-            return
-            
-        queue = [self.root]
-        while queue:
-            current = queue.pop(0)
-            print(current.value, end=' ')
-            if current.left:
-                queue.append(current.left)
-            if current.right:
-                queue.append(current.right)
-    
-    def height(self, node):
+    def height(self):
         """Calculate height of the tree"""
-        if not node:
-            return 0
-        return 1 + max(self.height(node.left), self.height(node.right))
+        def _height(node):
+            if node is None:
+                return 0
+            return 1 + max(_height(node.left), _height(node.right))
+        return _height(self.root)
     
-    def count_nodes(self, node):
+    def size(self):
         """Count all nodes in the tree"""
-        if not node:
-            return 0
-        return 1 + self.count_nodes(node.left) + self.count_nodes(node.right)
+        def _size(node):
+            if node is None:
+                return 0
+            return 1 + _size(node.left) + _size(node.right)
+        return _size(self.root)
+    
+    def __str__(self):
+        """String representation of the tree (level order)"""
+        return ' '.join(map(str, self.traverse('levelorder')))
 
-# Example usage
 if __name__ == "__main__":
+    # Create and populate the tree
     tree = BinaryTree(10)
-    tree.insert(5)
-    tree.insert(15)
-    tree.insert(3)
-    tree.insert(7)
-    tree.insert(12)
-    tree.insert(18)
+    for value in [5, 15, 3, 7, 12, 18]:
+        tree.insert(value)
     
-    print("Inorder Traversal:")
-    tree.inorder_traversal(tree.root)
-    print("\n\nPreorder Traversal:")
-    tree.preorder_traversal(tree.root)
-    print("\n\nPostorder Traversal:")
-    tree.postorder_traversal(tree.root)
-    print("\n\nLevel Order Traversal:")
-    tree.level_order_traversal()
-    
-    print("\n\nSearch for 7:", tree.search(7))
+    # Demonstrate functionality
+    print("Inorder Traversal:", tree.traverse('inorder'))
+    print("Preorder Traversal:", tree.traverse('preorder'))
+    print("Postorder Traversal:", tree.traverse('postorder'))
+    print("Level Order Traversal:", tree.traverse('levelorder'))
+    print("\nSearch for 7:", tree.search(7))
     print("Search for 20:", tree.search(20))
-    print("Tree height:", tree.height(tree.root))
-    print("Total nodes:", tree.count_nodes(tree.root))
+    print("Tree height:", tree.height())
+    print("Total nodes:", tree.size())
+    print("\nString representation (level order):", tree)
